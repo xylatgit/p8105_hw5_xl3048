@@ -7,6 +7,9 @@ output: github_document
 
 ```{r setup, include = FALSE}
 library(tidyverse)
+library(purrr)
+library(ggplot2)
+
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
@@ -76,8 +79,6 @@ results_df =
   select(city_state, estimate, conf.low, conf.high)
 ```
 
-
-
 ```{r}
 results_df %>% 
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
@@ -86,6 +87,62 @@ results_df %>%
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
+
+## Problem 2
+
+```{r p2_df}
+path_df = 
+  tibble(
+    path = list.files("./data/data"),
+  ) %>%
+  mutate(
+    path = str_c("./data/data/",path),
+    data = map(.x=path, ~ read.csv(.x)),
+    file = list.files("./data/data")
+  ) %>%
+  select(-path) %>%
+  relocate(file,data) %>%
+  unnest(data) %>%
+  separate(file,sep = "_", into = c("arm","ID")) %>%
+  mutate(
+    arm = case_when(
+      arm == "con" ~ "control",
+      arm == "exp" ~ "experimental"
+    )
+  ) %>%
+  unite(arm_id,arm,ID,sep = "_")
+path_df$arm_id<-gsub("\\..*","",path_df$arm_id)
+
+write.csv(path_df,file = "./data/prob2_path_df.csv")
+
+head(path_df)
+```
+
+
+```{r p2_plot}
+path_longer_df<-path_df %>% 
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    names_prefix = "week_",
+    values_to = "value"
+  ) %>%
+  separate(arm_id,sep = "_",into = c("arm","id")) %>%
+  unite(arm_id,arm,id,sep = "_",remove = F) %>%
+  select(-id)
+
+
+p<-ggplot(data = path_longer_df, aes(x = week, y = value, group = arm_id, color = arm))+
+  geom_line()
+p
+```
+
+At Week 1, two groups did not appear a significant difference. Only two participants from the experimental group had noteworthy higher measurements compared to the control group.\
+During the course of the study, the difference between the two groups became gradually obvious. The measurements taken from the control group roughly remained at the same level from Week 1 to Week 8. However, the measurements taken from the experimental group increased steadily every week. At Week 8, all participants in the experimental group had a higher measurements than that of the control group. 
+
+
+
+
 
 
 
