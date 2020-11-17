@@ -175,6 +175,7 @@ head(result) %>% knitr::kable(digits = 3)
 ```{r cache=TRUE}
 mu_list = 
   list(
+    "mu_0"  = 0,
     "mu_1"  = 1, 
     "mu_2"  = 2, 
     "mu_3" = 3, 
@@ -182,10 +183,10 @@ mu_list =
     "mu_5" = 5,
     "mu_6" = 6)
 
-trial_num = 1000
+trial_num = 5000
 
 output_data = 
-  tibble(mu_list = c(1,2,3,4,5,6)) %>% 
+  tibble(mu_list = c(0,1,2,3,4,5,6)) %>% 
   mutate(
     output_lists = map(.x = mu_list, ~rerun(trial_num, sim_mean_sd(mu = .x)))
   ) %>%
@@ -203,6 +204,8 @@ cbind(output_data$mu_list) %>%
 rename(true_mu = `output_data$mu_list`) %>%
 select(true_mu, estimate,p.value) %>%
 relocate(true_mu, estimate,p.value)
+
+
 ```
 
 ```{r p3_plot}
@@ -226,6 +229,36 @@ p1<-ggplot(data = plot_reject_null_prop, aes(fill = condition, y = proportion, x
 p1
 
 reject_null_prop%>% knitr::kable(digits = 3)
+```
+Describe the association between effect size and power.
+
+```{r}
+df1<-output_result %>%
+  group_by(true_mu) %>% 
+  summarize(avg_estimate_mu = sum(estimate)/n()) %>% 
+  mutate(
+    true_mu = str_c("true mu = ",true_mu)
+  )
+  # ) %>% 
+  # ggplot(aes(x = true_mu, y = avg_estimate_mu, fill = true_mu))+
+  # geom_point(size = 5, col="tomato2")+
+  # geom_text(aes(label = round(avg_estimate_mu,2)),hjust=2,vjust=-1)+
+  # labs(title = "true mu v.s average estimated mu")
+
+
+df2<-output_result %>%
+  filter(p.value<0.05) %>%
+  group_by(true_mu) %>% 
+  summarize(avg_estimate_mu = sum(estimate)/n()) %>%
+  mutate(
+    true_mu = str_c("true mu = ",true_mu)
+  ) 
+
+ggplot(df1, aes(x = true_mu, y = avg_estimate_mu, fill = true_mu))+
+  geom_point(size = 5, col="tomato2")+
+  geom_point(data=df2, color = "blue",size =5)+
+  labs(title = "true mu v.s average estimated mu")
+
 ```
 
 
