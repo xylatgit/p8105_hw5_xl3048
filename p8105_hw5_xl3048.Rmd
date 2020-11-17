@@ -9,12 +9,15 @@ output: github_document
 library(tidyverse)
 library(purrr)
 library(ggplot2)
-
 knitr::opts_chunk$set(
-  fig.width = 6,
-  fig.asp = .6,
-  out.width = "90%"
+  fig.width = 20, fig.height = 8
 )
+
+# knitr::opts_chunk$set(
+#   fig.width = 6,
+#   fig.asp = .6,
+#   out.width = "90%"
+# )
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 options(
   ggplot2.continuous.colour = "viridis",
@@ -144,6 +147,7 @@ During the course of the study, the difference between the two groups became gra
 ```{r cache=TRUE}
 set.seed(1)
 
+trial_num = 5000
 sim_mean_sd = function(samp_size=30, mu, sigma = 5) {
 
   sim_data = list(
@@ -152,7 +156,7 @@ sim_mean_sd = function(samp_size=30, mu, sigma = 5) {
   
 }
 
-sim_data <- rerun(5,sim_mean_sd(mu=0))
+sim_data <- rerun(trial_num,sim_mean_sd(mu=0))
 
 
 result <- tibble(
@@ -172,7 +176,7 @@ head(result) %>% knitr::kable(digits = 3)
 ```
 
 
-```{r }
+```{r cache=T}
 mu_list = 
   list(
     "mu_0"  = 0,
@@ -183,7 +187,6 @@ mu_list =
     "mu_5" = 5,
     "mu_6" = 6)
 
-trial_num = 5000
 
 output_data = 
   tibble(mu_list = c(0,1,2,3,4,5,6)) %>% 
@@ -247,8 +250,9 @@ output_result %>%
     true_mu = str_c("true mu = ",true_mu)
   ) %>% 
   ggplot(aes(x = true_mu, y = avg_estimate_mu, fill = true_mu))+
-  geom_point(size=5,alpha=0.7,color = "tomato2")+
-  labs(title = "all samples",x="true mu",y="average estimated mu")
+  geom_point(size=3,alpha=0.7,color = "tomato2")+
+  labs(title = "all samples",x="true mu",y="average estimated mu")+
+  geom_text(aes(label=round(avg_estimate_mu,2)),hjust=0, vjust=-1)
  
 output_result %>%
   filter(p.value<0.05) %>%
@@ -258,11 +262,12 @@ output_result %>%
     true_mu = str_c("true mu = ",true_mu)
   ) %>% 
   ggplot(aes(x = true_mu, y = avg_estimate_mu, fill = true_mu))+
-  geom_point(size=5,alpha=0.7,color = "blue")+
+  geom_point(size=3,alpha=0.7,color = "blue")+
   labs(title = "only include samples for which the null was rejected",x="true mu",y="average estimated mu")+
   geom_text(aes(label=round(avg_estimate_mu,2)),hjust=0, vjust=-1)
 ```
+The sample average of μ̂  across tests for which the null is rejected approximately equal to the true value of μ.\
+As the true μ departs from 0, the average of μ̂ becomes closer and closer to the true μ. This is because as the true μ departs from 0, the proportion of samples that reject H0 gets larger (effect size increases, the power of the test increases). Thus, the average of the samples that reject H0 becomes closer to the true μ.
 
-The sample average of μ̂  across tests for which the null is rejected approximately equal to the true value of μ from the plot denoted by blue.
 
 
