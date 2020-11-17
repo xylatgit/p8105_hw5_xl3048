@@ -28,7 +28,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 Read in the data.
 
-```{r}
+```{r, warning=FALSE}
 homicide_df = 
   read_csv("./data/homicide-data.csv") %>% 
   mutate(
@@ -144,18 +144,18 @@ During the course of the study, the difference between the two groups became gra
 ```{r cache=TRUE}
 set.seed(1)
 
-sim_mean_sd = function(samp_size=30, mu, sigma = 3) {
+sim_mean_sd = function(samp_size=30, mu, sigma = 5) {
 
   sim_data = list(
     x=rnorm(n=samp_size, mean = mu, sd = sigma)
   ) %>% bind_rows()
   
-  }
+}
 
-sim_data<-rerun(5,sim_mean_sd(mu=0))
+sim_data <- rerun(5,sim_mean_sd(mu=0))
 
 
-result<- tibble(
+result <- tibble(
   t_test = map(.x=sim_data,~t.test(.x))
  ) %>%
   mutate(
@@ -166,12 +166,67 @@ unnest(tidy_tests) %>%
 select(estimate,p.value) %>%
 rename(mu_hat = estimate)
 
-result %>% knitr::kable(digits = 3)
+head(result) %>% knitr::kable(digits = 3)
 
   
 ```
 
 
+```{r cache=TRUE}
+mu_list = 
+  list(
+    "mu_1"  = 1, 
+    "mu_2"  = 2, 
+    "mu_3" = 3, 
+    "mu_4" = 4,
+    "mu_5" = 5,
+    "mu_6" = 6)
+
+trial_num = 1000
+
+output_data = 
+  tibble(mu_list = c(1,2,3,4,5,6)) %>% 
+  mutate(
+    output_lists = map(.x = mu_list, ~rerun(trial_num, sim_mean_sd(mu = .x)))
+  ) %>%
+  unnest(output_lists)
+
+output_result<-tibble(
+  t_test = map2(.x=output_data$output_lists,.y = output_data$mu_list, ~t.test(.x,mu = .y))
+) %>%
+  mutate(
+   tidy_tests = map(.x = t_test, ~broom::tidy(.x))
+ )%>%
+select(-t_test) %>%
+unnest(tidy_tests) %>%
+cbind(output_data$mu_list) %>%
+rename(true_mu = `output_data$mu_list`) %>%
+select(true_mu, estimate,p.value) %>%
+relocate(true_mu, estimate,p.value)
+```
+
+```{r p3_plot}
+reject_null_prop <- output_result %>%
+  group_by(true_mu) %>%
+  summarize(
+    reject_null = sum(p.value<0.05)/n()
+  ) %>%
+  mutate(true_mu=as.factor(true_mu),
+         fail_reject_null = 1-reject_null) 
+
+plot_reject_null_prop <-reject_null_prop %>%
+  pivot_longer(
+    reject_null:fail_reject_null,
+    names_to = "condition",
+    values_to = "proportion"
+  )
+
+p1<-ggplot(data = plot_reject_null_prop, aes(fill = condition, y = proportion, x = true_mu))+
+  geom_bar(position="stack", stat="identity")+labs(title = "Proportion of Times Reject The Null")
+p1
+
+reject_null_prop%>% knitr::kable(digits = 3)
+```
 
 
 
