@@ -140,6 +140,36 @@ p
 At Week 1, two groups did not appear a significant difference. Only two participants from the experimental group had noteworthy higher measurements compared to the control group.\
 During the course of the study, the difference between the two groups became gradually obvious. The measurements taken from the control group roughly remained at the same level from Week 1 to Week 8. However, the measurements taken from the experimental group increased steadily every week. At Week 8, all participants in the experimental group had a higher measurements than that of the control group. 
 
+## Problem 3
+```{r cache=TRUE}
+set.seed(1)
+
+sim_mean_sd = function(samp_size=30, mu, sigma = 3) {
+
+  sim_data = list(
+    x=rnorm(n=samp_size, mean = mu, sd = sigma)
+  ) %>% bind_rows()
+  
+  }
+
+sim_data<-rerun(5,sim_mean_sd(mu=0))
+
+
+result<- tibble(
+  t_test = map(.x=sim_data,~t.test(.x))
+ ) %>%
+  mutate(
+   tidy_tests = map(.x = t_test, ~broom::tidy(.x))
+ ) %>%
+select(-t_test) %>%
+unnest(tidy_tests) %>%
+select(estimate,p.value) %>%
+rename(mu_hat = estimate)
+
+result %>% knitr::kable(digits = 3)
+
+  
+```
 
 
 
